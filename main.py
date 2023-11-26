@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 from utils import random_string, doc_to_dict, create_collection, pdf_file_to_text, create_embeddings
-import os
+import os, enum
 
 from tempfile import mkdtemp
 load_dotenv()
@@ -12,20 +12,25 @@ chroma_client = chromadb.PersistentClient(path=os.getenv('CHROMA_PATH'))
 
 
 ### MongoDB ###
-from mongoengine import connect, Document, StringField, ListField, DateTimeField, QueryFieldList, UUIDField
+from mongoengine import connect, Document, EmbeddedDocument,StringField, ListField, DateTimeField, QueryFieldList, UUIDField, EnumField
 from datetime import datetime, timedelta
 
+
+class MessageType(enum.Enum):
+    AIMessage = 'AIMessage'
+    HumanMessage = 'HumanMessage'
+
+class ChatMessage(EmbeddedDocument):
+    type = EnumField(enum=MessageType)
+    content = StringField(required=True)
 
 class Session(Document):
     sessionCookie = StringField()
     expiresAt = DateTimeField(default=lambda _ : datetime.now() + timedelta(days=1))
     chromaId = UUIDField()
     chromaName= StringField()
-    documents = ListField(StringField(), default=[])
-    conversation = ListField(StringField(), default = [])
-
-
-
+    documents = ListField(StringField(), default = [])
+    conversation = ListField(ChatMessage(), default = [])
 
 
 def get_session(session_cookie: str) -> Session:
@@ -46,10 +51,11 @@ def add_docs(session: Session, documents: list[str]):
         session.documents = []
         session.save()
     docs = session.documents
-    print(docs)
     docs.append(documents)
     session.documents = documents
     session.save()
+
+
 
 ### Flask ###
 
@@ -90,10 +96,10 @@ def retrieve_cookie():
     })
 
 @app.route('/session', methods=['POST'])
-def set_cookie(status_code: int = 200):
+def set_cookie():
     response = make_response({
         'message': 'Cookie sent!'
-    }, status_code=status_code)
+    })
 
     cookie_value = random_string(24)
     cookie_expiration = datetime.now() + timedelta(days=1)
@@ -126,8 +132,9 @@ def upload_document():
                     documents=documents,
                     embeddings=embeddings,
                     metadatas=[{
-                        'filename' : file.filename
-                    } for _ in range(len(ids))]
+                        'filename' : file.filename,
+                        'section' : n
+                    } for n in range(len(ids))]
                 )
                 uploaded_documents.append(file.filename)
                 add_docs(session, uploaded_documents)
@@ -154,6 +161,37 @@ def clear_collection():
         print(e)
 
     return Response("Resources were deleted from collection.", status=200)
+
+from config import LLMConfig
+from utils import talk_to_doc
+
+@app.route('/chat', methods=['POST'])
+def chat_with_doc():
+
+    user_message = request.json['content']
+
+    session_cookie = request.cookies.get('session-cookie')
+    session = get_session(session_cookie)
+    conversation_history = session.conversation
+
+    docs= chroma_client.get_collection(name=session.chromaName)
+
+    chain = LLMConfig.create_chain(conversation_history=conversation_history)
+
+    response_content = talk_to_doc(docs=docs, user_message=user_message, chain=chain)
+
+    user = ChatMessage(type=MessageType.HumanMessage, content=user_message)
+    ai =ChatMessage(content=response_content, type=MessageType.AIMessage)
+
+    conversation_history.extend([user,ai])
+    session.conversation = conversation_history
+    session.save()
+    
+
+    return Response(response_content)
+
+
+    
 
 # @app.route('/chat', methods=['PUT'])
 # def store_chat():

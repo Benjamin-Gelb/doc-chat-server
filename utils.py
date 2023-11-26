@@ -8,6 +8,7 @@ import PyPDF2
 from werkzeug.datastructures import FileStorage
 from langchain.text_splitter import CharacterTextSplitter
 import hashlib
+from langchain.chains import base
 
 def random_string(n: int):
     return ''.join([random.choice(string.ascii_letters + string.digits) for _ in range(n)])
@@ -25,6 +26,7 @@ def create_collection(chroma_client: ClientAPI) -> UUID:
     collection_name = random_string(24)
     collection = chroma_client.create_collection(name=collection_name)
     return (collection.id, collection_name)
+
 def pdf_file_to_text(file : FileStorage):
     reader = PyPDF2.PdfReader(file.stream)
     text = ''
@@ -32,7 +34,7 @@ def pdf_file_to_text(file : FileStorage):
         text += page.extract_text()
     return text
 
-def create_embeddings(full_text: str) -> (List[str], List[List[float]]):
+def create_embeddings(full_text: str) -> (List[str],List[str], List[List[float]]):
     text_splitter = CharacterTextSplitter(        
         separator = "\n",
         chunk_size = 1000,
@@ -49,3 +51,7 @@ def create_embeddings(full_text: str) -> (List[str], List[List[float]]):
 
     return (ids, documents, LLMConfig.embeddings_model.embed_documents(documents))
     
+def talk_to_doc(docs: Collection, user_message: str, chain: base.Chain):
+    context = docs.query(query_embeddings=create_embeddings(user_message)[2], n_results=2)
+    return chain.run(user_input=user_message, context=context)
+
