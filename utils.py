@@ -15,11 +15,16 @@ def random_string(n: int):
 
 def doc_to_dict(document: Document, include:List[str] = [], exclude:List[str] = []):
     document_data = document.to_mongo().to_dict()
+
+    if len(include) != 0:
+        document_copy = {}
+        for key in include:
+            document_copy[key] = document_data[key]
+        return document_copy
+
     for key in exclude:
         del document_data[key]
-    document_copy = {}
-    for key in include:
-        document_copy[key] = document_data[key]
+
     return document_data
 
 def create_collection(chroma_client: ClientAPI) -> UUID:
@@ -54,4 +59,3 @@ def create_embeddings(full_text: str) -> (List[str],List[str], List[List[float]]
 def talk_to_doc(docs: Collection, user_message: str, chain: base.Chain):
     context = docs.query(query_embeddings=create_embeddings(user_message)[2], n_results=2)
     return chain.run(user_input=user_message, context=context)
-

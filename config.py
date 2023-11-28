@@ -10,7 +10,22 @@ from langchain.memory import ConversationBufferMemory
 from mongoengine import StringField, EnumField, Document
 from enum import Enum
 
+from langchain.callbacks.base import BaseCallbackHandler
 
+class OnGen(BaseCallbackHandler):
+    async def on_llm_new_token(
+    self,
+    token: str,
+) -> None:
+        """Run on new LLM token. Only available when streaming is enabled."""
+        print(token)
+
+    def on_text(
+        self,
+        text: str,
+    ):
+        """Run on arbitrary text."""
+        print(text)
 
 load_dotenv()
 
@@ -25,7 +40,7 @@ class ChatMessage(Document):
 class LLMConfig:
     llm : BaseLLM = None
     embeddings_model : Embeddings = OpenAIEmbeddings()
-    chat_model : BaseChatModel= ChatOpenAI(temperature=0)
+    chat_model : BaseChatModel= ChatOpenAI(temperature=0, model_name='gpt-4', callbacks=[OnGen()])
 
     # Runtime Checks
     if llm:
@@ -39,7 +54,7 @@ class LLMConfig:
 
     @classmethod
     def create_chain(self, conversation_history: list[ChatMessage]) -> base.Chain:
-        prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, just say that you don't know.
+        prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, disclose that your knowledge is incomplete but try to answer to the best of your ability.
         Previous conversation:
         {chat_history}
         Question:
