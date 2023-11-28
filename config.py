@@ -9,23 +9,10 @@ from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
 from mongoengine import StringField, EnumField, Document
 from enum import Enum
+from typing import Any, Generator, Optional, List
+from chromadb import ClientAPI, Collection
 
 from langchain.callbacks.base import BaseCallbackHandler
-
-class OnGen(BaseCallbackHandler):
-    async def on_llm_new_token(
-    self,
-    token: str,
-) -> None:
-        """Run on new LLM token. Only available when streaming is enabled."""
-        print(token)
-
-    def on_text(
-        self,
-        text: str,
-    ):
-        """Run on arbitrary text."""
-        print(text)
 
 load_dotenv()
 
@@ -40,7 +27,11 @@ class ChatMessage(Document):
 class LLMConfig:
     llm : BaseLLM = None
     embeddings_model : Embeddings = OpenAIEmbeddings()
-    chat_model : BaseChatModel= ChatOpenAI(temperature=0, model_name='gpt-4', callbacks=[OnGen()])
+    chat_model : BaseChatModel= ChatOpenAI(
+        temperature=0,
+        streaming=True,
+        #    model_name='gpt-4',
+)
 
     # Runtime Checks
     if llm:
@@ -71,6 +62,53 @@ class LLMConfig:
                 memory.chat_memory.add_user_message(message.content)
 
         return LLMChain(llm=self.chat_model or self.llm, prompt=prompt, memory=memory)
+
+def data_generator():
+    while True:
+        received_data = yield
+        print(received_data)
+        yield f"Received: {received_data}"
+
+def send_data_to_generator(generator: Generator[str | None, Any, None], data):
+    try:
+        print(data)
+        generated_data = generator.send(data)
+    except StopIteration:
+        print("Generator has completed.")
+    
+class MyStreamingHandler(BaseCallbackHandler):
+    def __init__(self, gen: Generator) -> None:
+        super().__init__()
+        self.gen : Generator = gen
+    def on_llm_new_token(self, token: str, **kwargs):
+        print(f"Received new token: {token}")
+        send_data_to_generator(generator=self.gen,data= token)
+    # async def on_llm_end(
+    #     self) -> None:
+    #     """Run when LLM ends running."""
+    #     self.gen.close()
+
+def stream_response(docs: Collection, embeddings,  user_message: str):
+    gen = data_generator()
+    next(gen)
+
+    llm = ChatOpenAI(temperature=0.2, model_name='gpt-4', callbacks=[MyStreamingHandler(gen)])
+    prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, disclose that your knowledge is incomplete but try to answer to the best of your ability.
+        Question:
+        {user_input}
+        Legal context:
+        {context}
+        """
+    )
+    chain = LLMChain(prompt=prompt, llm=llm )
+    
+
+    
+    context = docs.query(query_embeddings=embeddings, n_results=2)
+    chain.run(user_input=user_message, context=context)
+    return gen
+        
+
     # def __init__(self,  embeddings_model: Embeddings, llm : BaseLLM = None, chat_model: BaseChatModel = None) -> None:
 
 

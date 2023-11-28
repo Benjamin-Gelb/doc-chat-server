@@ -259,11 +259,9 @@ def chat_with_doc():
     conversation_history = session.conversation
 
     docs= chroma_client.get_collection(name=session.chromaName)
-
     chain = LLMConfig.create_chain(conversation_history=conversation_history)
 
     response_content: str = talk_to_doc(docs=docs, user_message=user_message, chain=chain)
-    response_content = response_content.replace('\n', '\n\n')
 
     user = ChatMessage(type=MessageType.HumanMessage, content=user_message)
     ai =ChatMessage(content=response_content, type=MessageType.AIMessage)
@@ -275,8 +273,23 @@ def chat_with_doc():
 
     return make_response(ai.to_mongo().to_dict())
 
-
+from config import stream_response
     
+@app.route('/stream', methods=['POST'])
+def stream_chat():
+    user_message = request.json['content']
+
+    session_cookie = request.cookies.get('session-cookie')
+    session = get_session(session_cookie)
+    embeddings= create_embeddings(user_message)[2]
+    # conversation_history = session.conversation
+
+    docs= chroma_client.get_collection(name=session.chromaName)
+    # chain = LLMConfig.create_chain(conversation_history=conversation_history)
+    gen = stream_response(user_message=user_message, embeddings=embeddings, docs=docs)
+
+    return Response(gen, content_type='text/plain')
+
 
 # @app.route('/chat', methods=['PUT'])
 # def store_chat():
