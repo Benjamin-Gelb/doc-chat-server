@@ -129,9 +129,10 @@ def get_visitor():
             'exists': False,
             'data': None 
         })
+    sessions = [doc_to_dict(session, include=['conversation', 'documents', 'sessionCookie']) for session in visitor.sessions]
     response = make_response({
         'exists' : True,
-        'sessions': [doc_to_dict(session, include=['conversation', 'documents', 'sessionCookie'])  for session in visitor.sessions]
+        'sessions': sessions
     })
     return response
     
@@ -291,7 +292,7 @@ def stream_chat():
     return Response(gen, content_type='text/plain')
 
 
-# @app.route('/chat', methods=['PUT'])
+# @app  route('/chat', methods=['PUT'])
 # def store_chat():
 #     session_cookie = request.cookies.get('session-cookie', None)
 #     if not session_cookie:
