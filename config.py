@@ -8,7 +8,6 @@ from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain, base
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
-from langchain.schema.messages import BaseMessage
 from mongoengine import StringField, EnumField, Document
 from enum import Enum
 from typing import Any, Dict, Generator, Optional, List
@@ -19,7 +18,7 @@ from langchain.callbacks.base import BaseCallbackHandler
 load_dotenv()
 
 class Log(BaseCallbackHandler):
-    def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[BaseMessage]], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
+    def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[Any]], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
         print(messages)
 
 class MessageType(Enum):
