@@ -18,6 +18,8 @@ from langchain.callbacks.base import BaseCallbackHandler
 load_dotenv()
 
 class Log(BaseCallbackHandler):
+    def __init__(self) -> None:
+        super().__init__()
     def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[Any]], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
         print(messages)
 
