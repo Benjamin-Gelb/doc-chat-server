@@ -1,3 +1,4 @@
+from uuid import UUID
 from langchain.llms.base import BaseLLM
 from langchain.embeddings.base import Embeddings
 from langchain.chat_models.base import BaseChatModel
@@ -7,14 +8,19 @@ from langchain.chat_models import ChatOpenAI
 from langchain.chains import LLMChain, base
 from langchain.prompts import PromptTemplate
 from langchain.memory import ConversationBufferMemory
+from langchain.schema.messages import BaseMessage
 from mongoengine import StringField, EnumField, Document
 from enum import Enum
-from typing import Any, Generator, Optional, List
+from typing import Any, Dict, Generator, Optional, List
 from chromadb import ClientAPI, Collection
 
 from langchain.callbacks.base import BaseCallbackHandler
 
 load_dotenv()
+
+class Log(BaseCallbackHandler):
+    def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[BaseMessage]], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
+        print(messages)
 
 class MessageType(Enum):
     AIMessage = 'AIMessage'
@@ -29,7 +35,7 @@ class LLMConfig:
     embeddings_model : Embeddings = OpenAIEmbeddings()
     chat_model : BaseChatModel= ChatOpenAI(
         temperature=0,
-        streaming=True,
+        callbacks=[Log()]
         #    model_name='gpt-4',
 )
 
@@ -92,7 +98,7 @@ def stream_response(docs: Collection, embeddings,  user_message: str):
     gen = data_generator()
     next(gen)
 
-    llm = ChatOpenAI(temperature=0.2, model_name='gpt-4', callbacks=[MyStreamingHandler(gen)])
+    llm = ChatOpenAI(temperature=0.2, model_name='gpt-4', streaming=True, callbacks=[MyStreamingHandler(gen)])
     prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, disclose that your knowledge is incomplete but try to answer to the best of your ability.
         Question:
         {user_input}
