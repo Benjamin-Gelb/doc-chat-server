@@ -13,16 +13,13 @@ from enum import Enum
 from typing import Any, Dict, Generator, Optional, List
 from chromadb import ClientAPI, Collection
 
-from langchain.callbacks.base import BaseCallbackHandler
+from langchain.callbacks.base import BaseCallbackManager, BaseCallbackHandler
 
 load_dotenv()
 
-class Log(BaseCallbackHandler):
-    def __init__(self) -> None:
-        super().__init__()
-    def on_chat_model_start(self, serialized: Dict[str, Any], messages: List[List[Any]], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
-        print(messages)
-
+class MyHandler(BaseCallbackHandler):
+    def on_llm_start(self, serialized: Dict[str, Any], prompts: List[str], *, run_id: UUID, parent_run_id: UUID | None = None, tags: List[str] | None = None, metadata: Dict[str, Any] | None = None, **kwargs: Any) -> Any:
+        print(serialized, prompts)
 class MessageType(Enum):
     AIMessage = 'AIMessage'
     HumanMessage = 'HumanMessage'
@@ -36,7 +33,7 @@ class LLMConfig:
     embeddings_model : Embeddings = OpenAIEmbeddings()
     chat_model : BaseChatModel= ChatOpenAI(
         temperature=0,
-        callbacks=[Log()]
+        callback_manager=BaseCallbackManager([MyHandler()])
         #    model_name='gpt-4',
 )
 
