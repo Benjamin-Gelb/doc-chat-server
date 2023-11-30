@@ -33,8 +33,9 @@ class LLMConfig:
     embeddings_model : Embeddings = OpenAIEmbeddings()
     chat_model : BaseChatModel= ChatOpenAI(
         temperature=0,
-        callback_manager=BaseCallbackManager([MyHandler()])
-        #    model_name='gpt-4',
+        callback_manager=BaseCallbackManager([MyHandler()]),
+        model_name='gpt-4-1106-preview',
+        verbose=False
 )
 
     # Runtime Checks
@@ -49,7 +50,17 @@ class LLMConfig:
 
     @classmethod
     def create_chain(self, conversation_history: list[ChatMessage]) -> base.Chain:
-        prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, disclose that your knowledge is incomplete but try to answer to the best of your ability.
+        # prompt = PromptTemplate.from_template("""You are a legal assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. If you don't know the answer, disclose that your knowledge is incomplete but try to answer to the best of your ability.
+        # Previous conversation:
+        # {chat_history}
+        # Question:
+        # {user_input}
+        # Legal context:
+        # {context}
+        # """
+        # )
+
+        prompt = PromptTemplate.from_template("""You are a world class attorney that can analyze legal documents.  Do not say "based on the provided legal context".  Be as brief as possible.
         Previous conversation:
         {chat_history}
         Question:
@@ -58,6 +69,7 @@ class LLMConfig:
         {context}
         """
         )
+
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="user_input")
         for message in conversation_history:
             if message.type == 'AIMessage':
