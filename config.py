@@ -70,6 +70,17 @@ class LLMConfig:
         """
         )
 
+
+        # prompt = PromptTemplate.from_template("""You are a world class attorney that can analyze legal documents.  Do not say "based on the provided legal context". 
+        # Previous conversation:
+        # {chat_history}
+        # Question:
+        # {user_input}
+        # Legal context:
+        # {context}
+        # """
+        # )
+
         memory = ConversationBufferMemory(memory_key="chat_history", input_key="user_input")
         for message in conversation_history:
             if message.type == 'AIMessage':
