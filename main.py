@@ -182,21 +182,8 @@ def create_session():
     response.set_cookie('session-cookie', session.sessionCookie, expires=session.expiresAt)
     return response
 
-# @app.route('/session', methods=['PUT'])
-# def set_cookie():
-#     persistent_cookie = request.cookies.get('persistent-cookie', None)
-#     visitor : Visitor = Visitor.objects(persistentCookie=persistent_cookie).first()
-
-
-#     body = request.json
-#     if body['sessionCookie']:
-#         #validate session cookie
-#         lambda x : x.sessionCookie ==
-#         if visitor.sessions
-#         return make_response({'sessions': sessions_from_visitor(visitor)}).set_cookie('session-cookie', )
-#     return 
-
-
+from langchain.document_loaders import PyPDFLoader
+from tempfile import mkdtemp
 
 @app.route('/document', methods=['POST'])
 def upload_document():
@@ -205,11 +192,16 @@ def upload_document():
     if not session:
         return Response("Missing or outdated session-cookie.", status=404)
     uploaded_documents = []
+    tmpdir =mkdtemp('localtmp')
     try:
         collection = chroma_client.get_collection(name=session.chromaName)
         items = request.files.getlist('files')
         for file in items:
             if file.filename.lower().endswith('.pdf'):
+                file.save(tmpdir)
+                PyPDFLoader(os.path.join(tmpdir, file.filename))
+                
+
                 full_text = pdf_file_to_text(file)
                 ids, documents, embeddings = create_embeddings(full_text)
                 collection.add(

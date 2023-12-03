@@ -35,7 +35,8 @@ def create_collection(chroma_client: ClientAPI) -> UUID:
 def pdf_file_to_text(file : FileStorage):
     reader = PyPDF2.PdfReader(file.stream)
     text = ''
-    for page in reader.pages:
+    for page, i in enumerate(reader.pages):
+        
         text += page.extract_text()
     return text
 
