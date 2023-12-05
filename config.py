@@ -35,7 +35,7 @@ class LLMConfig:
         temperature=0,
         callback_manager=BaseCallbackManager([MyHandler()]),
         model_name='gpt-4-1106-preview',
-        verbose=False
+        verbose=True
 )
 
     # Runtime Checks
