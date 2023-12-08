@@ -7,7 +7,7 @@ load_dotenv()
 
 ### ChromaDB ###
 import chromadb
-chroma_client = chromadb.PersistentClient(path=os.getenv('CHROMA_PATH'))
+chroma_client = chromadb.PersistentClient(  )
 
 
 
@@ -79,7 +79,6 @@ def sessions_from_visitor(visitor: Visitor):
 
 from flask import Flask, make_response, Response, request
 from flask_cors import CORS, cross_origin
-from typing import List, Any
 
 app = Flask(__name__)
 
@@ -183,7 +182,7 @@ def create_session():
     return response
 
 from langchain.document_loaders import PyPDFLoader
-from tempfile import mkdtemp
+import
 
 @app.route('/document', methods=['POST'])
 def upload_document():
@@ -192,15 +191,14 @@ def upload_document():
     if not session:
         return Response("Missing or outdated session-cookie.", status=404)
     uploaded_documents = []
-    tmpdir =mkdtemp('localtmp')
+    
     try:
         collection = chroma_client.get_collection(name=session.chromaName)
         items = request.files.getlist('files')
         for file in items:
             if file.filename.lower().endswith('.pdf'):
-                file.save(tmpdir)
-                PyPDFLoader(os.path.join(tmpdir, file.filename))
-                
+                file.save()
+                PyPDFLoader
 
                 full_text = pdf_file_to_text(file)
                 ids, documents, embeddings = create_embeddings(full_text)

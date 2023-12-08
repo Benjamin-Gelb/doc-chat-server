@@ -13,7 +13,6 @@ from langchain.chains.llm import LLMChain
 from langchain.docstore.document import Document
 
 def stuff(docs: list[Document]):
-
     template = """Write a concise summary of the following:
     "{text}"
     CONCISE SUMMARY:"""
@@ -24,13 +23,21 @@ def stuff(docs: list[Document]):
 
     stuff_chain = StuffDocumentsChain(llm_chain=llm_chain, document_variable_name="text")
 
-    return stuff_chain
-
-def setup(**kwargs):
+    return stuff_chain.run(docs)
 
 
-    def summary_chain():
+# from langchain.document_loaders import PyPDFLoader
 
+# loader = PyPDFLoader('chains/p_brief_priv.pdf')
+# docs = loader.load()
+# print(stuff(docs))
+
+# def setup(**kwargs):
+#     docs = kwargs.get('docs', None)
+#     if not docs:
+#         raise KeyError("Didn't pass 'docs' as keyword argument.")
+#     return stuff(docs)
+    
 
 
 # from langchain.chains.combine_documents.stuff import StuffDocumentsChain
